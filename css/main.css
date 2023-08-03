@@ -1,0 +1,88 @@
+body {
+	margin: 0;
+	padding: 0;
+	background-color: black;
+	height: 100vh;
+	overflow: hidden;
+	font-family: 'Roboto', sans-serif;
+}
+
+.flex {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.flex-column {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+.button {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 10px 20px;
+	margin: 10px;
+	background-color: white;
+	color: black;
+	cursor: pointer;
+}
+
+canvas {
+	display: block;
+}
+
+#container {
+	width: 100vw;
+	height: 100vh;
+}
+
+.color-picker-wrapper {
+	position: absolute;
+	/* width: 100vw;
+	height: 100vh; */
+	top: 120px;
+	left: 20px;
+	z-index: -1;
+}
+.color-picker-wrapper.active{
+	z-index: 2;
+}
+/* .color-picker-wrapper .color-picker-inner {
+	margin-top: 120px;
+	margin-left: 20px;
+} */
+
+/* Top bar menu styles */
+.top-bar {
+	background-color: black;
+	color: white;
+	height: 100px;
+	width: 100vw;
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0 20px;
+}
+
+.title {
+	font-size: 22px;
+	font-weight: 500;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	letter-spacing: 2px!important;
+	color : white;
+}
+
+.logo {
+	width: 50px;
+	height: 50px;
+	margin-right: 10px;
+}
