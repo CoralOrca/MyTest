@@ -1,49 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Responsive Web Page</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto&display=swap">
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            background: linear-gradient(to bottom, teal, navy);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .link-container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-
-        .link-container a {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #1da1f2;
-            color: #fff;
-            font-weight: bold;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-
-        .link-container a:hover {
-            background-color: #0e71a3;
-        }
-    </style>
+    <title>Camera Movement with Tween.js and Three.js</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/Tween.min.js"></script>
 </head>
 <body>
-    <div class="link-container">
-        <a href="https://twitter.com/coralorca" target="_blank">contact Coral Orca on Twitter</a>
-    </div>
+    <script>
+        // Set up Three.js scene, camera, and renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Set initial camera position
+        const camDis = 10;
+        camera.position.set(0, 0, camDis * 2);
+        camera.lookAt(0, 0, 0);
+
+        // Add a cube to visualize movement
+        const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        scene.add(cube);
+
+        // Animate camera movement
+        function animateCamera() {
+            // Create a new TWEEN object
+            new TWEEN.Tween(camera.position)
+                .to({ z: camDis / 2 }, 2000) // Move to the new position over 2000ms (2 seconds)
+                .easing(TWEEN.Easing.Quadratic.InOut) // Use quadratic in-out easing function
+                .start(); // Start the tween
+        }
+
+        // Animate function
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update TWEEN
+            TWEEN.update();
+
+            // Render the scene with the updated camera position
+            renderer.render(scene, camera);
+        }
+
+        // Start the animation
+        animate();
+
+        // Call the animateCamera function after a delay to start the camera movement
+        setTimeout(animateCamera, 1000); // Start after 1 second (adjust as needed)
+    </script>
 </body>
 </html>
