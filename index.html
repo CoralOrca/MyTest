@@ -1,55 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Camera Movement with Tween.js and Three.js</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/Tween.min.js"></script>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<title>3D Opepen</title>
+
+	<link rel="stylesheet" href="css/main.css">
+	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;500;700&display=swap" rel="stylesheet">
+	
+	<link rel="icon" href="images/main-logo.png" type="image/png">
+	<script src="../pluginJS/jquery.js"></script>
 </head>
 <body>
-    <script>
-        // Set up Three.js scene, camera, and renderer
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+	<div id="container"></div>
+	<div class="top-bar">
+		<div class="title-container">
+			<a href="https://twitter.com/coralorca">
+				<div class="logo">
+					<img src="images/main-logo.svg" alt="3Dopepen Icon" class="logo">
+				</div>
+			</a>
+			<p class="title">Opepen</p>
+		</div>
+	</div>
 
-        // Set initial camera position
-        const camDis = 10;
-        camera.position.set(0, 0, camDis * 2);
-        camera.lookAt(0, 0, 0);
+	<div class="color-picker-wrapper" id="colorPickerWrapper">
+		<div class="color-picker-inner">
+			<input type="color" id="inputColor" value="#e66465">
+		</div>
+	</div>
 
-        // Add a cube to visualize movement
-        const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-        const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-        scene.add(cube);
+	<div class="setting" id="setting"></div>
+	<script src="../pluginJS/three.min.js"></script>
+	<script src="../pluginJS/OrbitControls.js"></script>
+	<script src="../pluginJS/GLTFLoader.js"></script>
+	<script src="../pluginJS/GLTFLoader.js"></script>
+	<script src="../pluginJS/Tween.module.js"></script>
 
-        // Animate camera movement
-        function animateCamera() {
-            // Create a new TWEEN object
-            new TWEEN.Tween(camera.position)
-                .to({ z: camDis / 2 }, 2000) // Move to the new position over 2000ms (2 seconds)
-                .easing(TWEEN.Easing.Quadratic.InOut) // Use quadratic in-out easing function
-                .start(); // Start the tween
-        }
+	<script src="../customJS/init.js"></script>
 
-        // Animate function
-        function animate() {
-            requestAnimationFrame(animate);
-
-            // Update TWEEN
-            TWEEN.update();
-
-            // Render the scene with the updated camera position
-            renderer.render(scene, camera);
-        }
-
-        // Start the animation
-        animate();
-
-        // Call the animateCamera function after a delay to start the camera movement
-        setTimeout(animateCamera, 1000); // Start after 1 second (adjust as needed)
-    </script>
+    <div class="canvas-overlay">
+        <div>
+            <p >Click on the model to change colors or refresh site to get a new palette</p>
+			<p class="instructions"><b>Left click to rotate    /   Right click to pan   /    Scroll wheel to zoom</b></p>
+            <p >Made by <a href="https://twitter.com/coralorca" class="custom-link" target="_blank">CoralOrca</a>. Inspired by <a href="https://twitter.com/coralorca" class="custom-link" target="_blank">Opepen.art</a></p>
+        </div>
+    </div>
 </body>
 </html>
