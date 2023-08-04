@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-	<title>3D Model Customizer</title>
+	<title>3D Opepen</title>
 
 	<link rel="stylesheet" href="css/main.css">
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;500;700&display=swap" rel="stylesheet">
@@ -15,10 +15,17 @@
 	<div id="container"></div>
 	<div class="top-bar">
 		<div class="title-container">
-			<div class="logo">
-				<img src="images/main-logo.svg" alt="3Dopepen Icon" class="logo">
-			</div>
+			<a href="https://twitter.com/coralorca">
+				<div class="logo">
+					<img src="images/main-logo2.svg" alt="3Dopepen Icon" class="logo">
+				</div>
+			</a>	
 			<p class="title">Opepen</p>
+		</div>
+		<div class="logo2">
+			<a href="https://opepen.art">
+				<img src="images/OriginalOpepenIconThick.svg" alt="3Dopepen Icon" class="logo">
+			</a>
 		</div>
 	</div>
 
@@ -27,11 +34,27 @@
 			<input type="color" id="inputColor" value="#e66465">
 		</div>
 	</div>
+
 	<div class="setting" id="setting"></div>
 	<script src="../pluginJS/three.min.js"></script>
 	<script src="../pluginJS/OrbitControls.js"></script>
 	<script src="../pluginJS/GLTFLoader.js"></script>
-
 	<script src="../customJS/init.js"></script>
+
+	<div class="canvas-overlay-drop">
+		<div id="dropArea">
+			<p>Drag and drop an Opepen here</p>
+	  	</div>
+	</div>
+
+
+	<div class="canvas-overlay">
+        <div>
+            <p >Click on the model to change colors or refresh site to get a new palette</p>
+			<p class="instructions"><b>Left click to rotate    /   Right click to pan   /    Scroll wheel to zoom</b></p>
+            <p >Made by <a href="https://twitter.com/coralorca" class="custom-link" target="_blank">CoralOrca</a>. Inspired by <a href="https://twitter.com/coralorca" class="custom-link" target="_blank">Opepen.art</a></p>
+        </div>
+    </div>
+
 </body>
 </html>

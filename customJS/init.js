@@ -1,7 +1,7 @@
 
 var camera, scene, renderer, controls, tWidth, tHeight, totalGroup, modelGroup, oldColor, selMesh;
 const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2(), meshArr = [], camDis = 10;
-const colors = generateVariations();
+const randColors = generateVariations();
 
 $(document).ready(function () {
 	setTotalSize();
@@ -11,6 +11,21 @@ $(document).ready(function () {
 	const inputColor = document.getElementById('inputColor');
 	inputColor.addEventListener('change', e=>applyColor(e), false);
 	inputColor.addEventListener('input', e=>applyColor(e), false);
+
+	// Event listeners for drag and drop
+	const dropArea = document.getElementById('dropArea');
+	dropArea.addEventListener('dragover', (event) => {
+	  event.preventDefault();
+	  dropArea.classList.add('dragging');
+	});
+  
+	dropArea.addEventListener('dragleave', (event) => {
+	  event.preventDefault();
+	  dropArea.classList.remove('dragging');
+	});
+  
+	dropArea.addEventListener('drop', handleDrop);
+
 });
 
 function init() {
@@ -22,14 +37,14 @@ function init() {
 	scene = new THREE.Scene();
 
 	camera = new THREE.PerspectiveCamera(60, tWidth / tHeight, 0.01, camDis*10);
-	camera.position.set(0, 0, camDis);
+	camera.position.set(0, 0, camDis/2);
 
 	controls = new THREE.OrbitControls(camera, renderer.domElement);
 	controls.minDistance = camDis / 2;
-	controls.maxDistance = camDis * 2;
+	controls.maxDistance = camDis ;
 
-	const ambient = new THREE.AmbientLight(0xFFFFFF, 0.3); scene.add(ambient);
-	const mainLight = new THREE.DirectionalLight( 0xFFFFFF, 1 ); mainLight.position.set( -1, 1, 1 ); scene.add( mainLight );
+	const ambient = new THREE.AmbientLight(0xFFFFFF, 1); scene.add(ambient);
+	const mainLight = new THREE.DirectionalLight( 0xFFFFFF, 0.85); mainLight.position.set( -1, 1, 1 ); scene.add( mainLight );
 
 	totalGroup = new THREE.Group(); scene.add(totalGroup);
 
@@ -37,9 +52,9 @@ function init() {
 	container.addEventListener('pointerup',  onMouseClick,  false);
 }
 
-function loadModel() {
+function loadModel(colorsExtracted) {
 	const loader = new THREE.GLTFLoader();
-	loader.load( '../models/FullBody.glb', function ( gltf ) {
+	loader.load( '../models/FullBodyApose.glb', function ( gltf ) {
 		const object = gltf.scene;
 		const vPos = new THREE.Box3().setFromObject(object), {min, max} = vPos;
 		const vSize = {
@@ -62,20 +77,38 @@ function loadModel() {
 				const {map, color} = child.material, hexCol = color.getHex();
 				if (child.name.startsWith("ROW2_")) {
 					if (child.name === "ROW2_front_B" || child.name ==="ROW2_front_D" ) {
-						child.material = new THREE.MeshStandardMaterial({ color: 0x000000,  roughness: 0.2, metalness: 0.9 });
+						child.material = new THREE.MeshStandardMaterial({ color: 0x000000,  roughness: 0.8, metalness: 0.5 }); //black
 					} else {
-						child.material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF,  roughness: 0.7, metalness: 0.5 });
+						child.material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF,  roughness: 0.8, metalness: 0.5 }); //white
 					}
-				} else {
-					const randomCol = colors[Math.floor(Math.random() * colors.length)]
-					child.material = new THREE.MeshStandardMaterial({color:randomCol, map});
+				} 
+				else {
+					// Find the corresponding color from the colorsExtracted array based on the index
+					const index = meshArr.indexOf(child);
+					if (index !== -1 && index < colorsExtracted.length) {
+						child.material = new THREE.MeshStandardMaterial({
+							color: colorsExtracted[index],
+							roughness: 0.8, metalness: 0.5 
+						});
+					} 
+					
+					else {
+						// Fallback to random color from the randColors array if no corresponding color is found
+						const randomCol = randColors[Math.floor(Math.random() * randColors.length)];
+						child.material = new THREE.MeshStandardMaterial({
+							color: randomCol,
+							roughness: 0.8, metalness: 0.5 
+						});
+					}
 				}
 				meshArr.push(child);
 			}
 		});
 		totalGroup.add( object );
+		totalGroup.position.y=-1.4;
 	}, undefined, undefined );
 }
+
 
 function onMouseClick(e) {
 	var posX, posY;
@@ -121,12 +154,7 @@ function setTotalSize() {
 
 function generateVariations() { // baseColor, numVariations, variationFactor
 	const rgbArr = [
-		{r:1, g:0, b:0},
-		{r:0, g:1, b:0},
-		{r:0, g:0, b:1},
-		{r:1, g:1, b:0},
-		{r:1, g:0, b:1},
-		{r:0, g:1, b:1},
+		{r:1, g:0, b:0},{r:0, g:1, b:0},{r:0, g:0, b:1},{r:1, g:1, b:0},{r:1, g:0, b:1},{r:0, g:1, b:1},
 	]
 	const baseRGB = getRandom(rgbArr);
 
@@ -158,4 +186,88 @@ function getRGBColor(rgb) {
 function animate() {
 	renderer.render(scene, camera);
 	requestAnimationFrame(animate);
+}
+
+function handleDrop(event) {
+	event.preventDefault();
+	const file = event.dataTransfer.files[0];
+	if (file.type.startsWith('image/')) {
+	  const reader = new FileReader();
+	  reader.onload = function (e) {
+		const img = new Image();
+		img.onload = function () {
+		  const originalWidth = 1000;
+		  const originalHeight = 1000;
+		  const wRatio = img.width / originalWidth;
+		  const hRatio = img.height / originalHeight;
+  
+		  const locations = [
+			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio],
+			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], // Arm Right
+		  
+			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio],
+			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], // Arm Left
+		  
+			[320 * wRatio, 320 * hRatio], [430 * wRatio, 320 * hRatio], [580 * wRatio, 320 * hRatio], [690 * wRatio, 320 * hRatio],
+			[320 * wRatio, 320 * hRatio], [430 * wRatio, 320 * hRatio], [580 * wRatio, 320 * hRatio], [690 * wRatio, 320 * hRatio], // Row 1
+		  
+			[320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], // Eyes Back
+			[320 * wRatio, 430 * hRatio], [430 * wRatio, 430 * hRatio], [580 * wRatio, 430 * hRatio], [690 * wRatio, 430 * hRatio], // Eyes Front
+		  
+			[320 * wRatio, 560 * hRatio], [430 * wRatio, 560 * hRatio], [580 * wRatio, 560 * hRatio], [690 * wRatio, 560 * hRatio],
+			[320 * wRatio, 560 * hRatio], [430 * wRatio, 560 * hRatio], [580 * wRatio, 560 * hRatio], [690 * wRatio, 560 * hRatio], // Row 3
+		  
+			[320 * wRatio, 690 * hRatio], [430 * wRatio, 690 * hRatio], [580 * wRatio, 690 * hRatio], [690 * wRatio, 690 * hRatio],
+			[320 * wRatio, 690 * hRatio], [430 * wRatio, 690 * hRatio], [580 * wRatio, 690 * hRatio], [690 * wRatio, 690 * hRatio], // Row 4
+		  
+			[430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], [430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], // Body
+			[430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], [430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio],
+		  
+			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [760 * wRatio, 225 * hRatio], [760 * wRatio, 225 * hRatio], // Feet + legs
+		  ];
+  
+		  analyzeImageColors(e.target.result, locations);
+		};
+		img.src = e.target.result;
+	  };
+	  reader.readAsDataURL(file);
+	}
+}
+
+  
+
+function analyzeImageColors(imageDataUrl, locations) {
+	const img = new Image();
+	img.onload = function () {
+	  const canvas = document.createElement('canvas');
+	  const ctx = canvas.getContext('2d');
+	  const colorsExtracted= [];
+  
+	  canvas.width = img.width;
+	  canvas.height = img.height;
+	  ctx.drawImage(img, 0, 0, img.width, img.height);
+  
+	  for (const [x, y] of locations) {
+		const pixelData = ctx.getImageData(x, y, 1, 1).data;
+		const color = new THREE.Color("rgb(" + pixelData[0] + ", " + pixelData[1] + ", " + pixelData[2] + ")");
+		colorsExtracted.push(color);
+		console.log(`Color at (${x}, ${y}): R=${pixelData[0]}, G=${pixelData[1]}, B=${pixelData[2]}`);
+	  }
+	  colorsExtracted.reverse();
+	  //console.log(colorsExtracted);
+	  applyColorsToMeshes(colorsExtracted);
+	}
+	img.src = imageDataUrl;
+  }
+
+
+  function applyColorsToMeshes(colorsExtracted) {
+	meshArr.forEach((mesh, index) => {
+		if (index < colorsExtracted.length) {
+			mesh.material.color.copy(colorsExtracted[index]);
+		} else {
+			const randomCol = randColors[Math.floor(Math.random() * randColors.length)];
+			mesh.material.color.copy(randomCol);
+		}
+	});
 }
