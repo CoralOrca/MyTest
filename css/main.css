@@ -135,22 +135,18 @@ canvas {
 
 #dropArea {
 	width: 300px;
-	height: 300px;
-	border: 2px dashed #ccc;
+	height: 50px;
+	border: 1px dashed #ccc;
 	text-align: center;
 	padding: 20px;
-	margin-bottom: 100px;
+	margin-bottom: 400px;
   }
-
-
-
 
   #dropArea:hover {
 	/* Add styles for the on-hover effect */
-	border-color: #2200ff!; /* For example, change the border color to yellow */
+	border: 2px dashed #ccc!important;/* For example, change the border color to yellow */
 	background-color:rgb(10, 10, 10, 0.5); /* Add any other styles you want to apply on hover */
   }
-  
   
   .dragging {
 	border-color: #00ff99;
@@ -170,3 +166,11 @@ canvas {
 	color: white;
 }
 
+.color-picker-wrapper {
+	position: absolute;
+	/* width: 100vw;
+	height: 100vh; */
+	top: 120px;
+	left: 20px;
+	z-index: -1;
+}

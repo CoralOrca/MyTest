@@ -1,4 +1,3 @@
-
 var camera, scene, renderer, controls, tWidth, tHeight, totalGroup, modelGroup, oldColor, selMesh;
 const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2(), meshArr = [], camDis = 10;
 const randColors = generateVariations();
@@ -12,7 +11,6 @@ $(document).ready(function () {
 	inputColor.addEventListener('change', e=>applyColor(e), false);
 	inputColor.addEventListener('input', e=>applyColor(e), false);
 
-	// Event listeners for drag and drop
 	const dropArea = document.getElementById('dropArea');
 	dropArea.addEventListener('dragover', (event) => {
 	  event.preventDefault();
@@ -25,6 +23,9 @@ $(document).ready(function () {
 	});
   
 	dropArea.addEventListener('drop', handleDrop);
+
+	const fileInput = document.getElementById('fileInput');
+	fileInput.addEventListener('change', (e) => handleFileSelection(e), false);
 
 });
 
@@ -40,7 +41,7 @@ function init() {
 	camera.position.set(0, 0, camDis/2);
 
 	controls = new THREE.OrbitControls(camera, renderer.domElement);
-	controls.minDistance = camDis / 2;
+	controls.minDistance = camDis / 4;
 	controls.maxDistance = camDis ;
 
 	const ambient = new THREE.AmbientLight(0xFFFFFF, 1); scene.add(ambient);
@@ -234,7 +235,52 @@ function handleDrop(event) {
 	}
 }
 
+
+// Function to handle the file selection
+function handleFileSelection(event) {
+	const file = event.target.files[0];
+	if (file.type.startsWith('image/')) {
+	  const reader = new FileReader();
+	  reader.onload = (e) => {
+		const img = new Image();
+		img.onload = () => {
+		  const originalWidth = 1000;
+		  const originalHeight = 1000;
+		  const wRatio = img.width / originalWidth;
+		  const hRatio = img.height / originalHeight;
   
+		  const locations = [
+			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio],
+			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], // Arm Right
+		  
+			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio],
+			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], // Arm Left
+		  
+			[320 * wRatio, 320 * hRatio], [430 * wRatio, 320 * hRatio], [580 * wRatio, 320 * hRatio], [690 * wRatio, 320 * hRatio],
+			[320 * wRatio, 320 * hRatio], [430 * wRatio, 320 * hRatio], [580 * wRatio, 320 * hRatio], [690 * wRatio, 320 * hRatio], // Row 1
+		  
+			[320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], // Eyes Back
+			[320 * wRatio, 430 * hRatio], [430 * wRatio, 430 * hRatio], [580 * wRatio, 430 * hRatio], [690 * wRatio, 430 * hRatio], // Eyes Front
+		  
+			[320 * wRatio, 560 * hRatio], [430 * wRatio, 560 * hRatio], [580 * wRatio, 560 * hRatio], [690 * wRatio, 560 * hRatio],
+			[320 * wRatio, 560 * hRatio], [430 * wRatio, 560 * hRatio], [580 * wRatio, 560 * hRatio], [690 * wRatio, 560 * hRatio], // Row 3
+		  
+			[320 * wRatio, 690 * hRatio], [430 * wRatio, 690 * hRatio], [580 * wRatio, 690 * hRatio], [690 * wRatio, 690 * hRatio],
+			[320 * wRatio, 690 * hRatio], [430 * wRatio, 690 * hRatio], [580 * wRatio, 690 * hRatio], [690 * wRatio, 690 * hRatio], // Row 4
+		  
+			[430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], [430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], // Body
+			[430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], [430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio],
+		  
+			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [760 * wRatio, 225 * hRatio], [760 * wRatio, 225 * hRatio], // Feet + legs
+		  ];
+  
+		  analyzeImageColors(e.target.result, locations);
+		};
+		img.src = e.target.result;
+	  };
+	  reader.readAsDataURL(file);
+	}
+  }
 
 function analyzeImageColors(imageDataUrl, locations) {
 	const img = new Image();
