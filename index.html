@@ -10,9 +10,11 @@
 	
 	<link rel="icon" href="images/main-logo.png" type="image/png">
 	<script src="../pluginJS/jquery.js"></script>
+
 </head>
 <body>
 	<div id="container"></div>
+
 	<div class="top-bar">
 		<div class="title-container">
 			<a href="https://3Dopepen.art">
@@ -22,6 +24,7 @@
 			</a>	
 			<p class="title">Opepen</p>
 		</div>
+
 		<div class="logo2">
 			<a href="https://opepen.art">
 				<img src="images/OriginalOpepenIconThick.svg" alt="3Dopepen Icon" class="logo">
@@ -29,9 +32,18 @@
 		</div>
 	</div>
 
+	<div class="top-bar-controls">
+		<input type="radio" id="idleAnimation" name="animationType" value="Idle">
+		<label for="idleAnimation">Idle</label>
+		<input type="radio" id="walkAnimation" name="animationType" value="walk">
+		<label for="walkAnimation">Walk</label>
+		<input type="radio" id="runAnimation" name="animationType" value="run">
+		<label for="runAnimation">Run</label>
+    </div>
+
 	<div class="color-picker-wrapper" id="colorPickerWrapper">
 		<div class="color-picker-inner">
-			<input type="color" id="inputColor" value="#e66465">
+			<input type="color" id="inputColor" value="#FFFFFF">
 		</div>
 	</div>
 
@@ -41,20 +53,22 @@
 	<script src="../pluginJS/GLTFLoader.js"></script>
 	<script src="../customJS/init.js"></script>
 
+	<script src="../pluginJS/tween.umd.js"></script>
+
 	<div class="canvas-overlay-drop">
 		<div id="dropArea">
-			<div>Drag & Drop or <label for="fileInput" style="text-decoration: underline;">Browse</label>
-			<br></br>
+			<div>Drag & Drop or <label for="fileInput">Browse</label>
+			<br>
 			Opepen image
 			</div>
 			<input type="file" id="fileInput" style="display: none;">
 	  	</div>
 	</div>
 
-
 	<div class="canvas-overlay">
         <div>
-            <p >Click on the model to change colors</p>
+            <p >Use mouse or fingers to rotate, pan & zoom. Click on each tiles to change colors</p>
+			<br>
             <p >Made by <a href="https://twitter.com/coralorca" class="custom-link" target="_blank">CoralOrca</a>. Inspired by <a href="https://twitter.com/coralorca" class="custom-link" target="_blank">Opepen.art</a></p>
         </div>
     </div>

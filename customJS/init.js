@@ -1,15 +1,34 @@
 var camera, scene, renderer, controls, tWidth, tHeight, totalGroup, modelGroup, oldColor, selMesh;
+
 const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2(), meshArr = [], camDis = 10;
-const randColors = generateVariations();
+
+let randColors = generateVariations();
+let object;
+
+let mixer;
+const clock = new THREE.Clock();
+
+let lastRotationTime = Date.now();
+let lastInteractionTime = Date.now();
+
+let legoWalkAction;
+let legoRunAction;
+let legoIdleAction;
+
+// Define and initialize animationState object
+const animationState = {
+	lego_idle: true,
+    lego_walk: false,
+    lego_run: false
+};
 
 $(document).ready(function () {
 	setTotalSize();
 	init();
 	loadModel();
 	animate();
-	const inputColor = document.getElementById('inputColor');
-	inputColor.addEventListener('change', e=>applyColor(e), false);
-	inputColor.addEventListener('input', e=>applyColor(e), false);
+	// Camera zooms in 
+	moveCameraForward();
 
 	const dropArea = document.getElementById('dropArea');
 	dropArea.addEventListener('dragover', (event) => {
@@ -27,6 +46,52 @@ $(document).ready(function () {
 	const fileInput = document.getElementById('fileInput');
 	fileInput.addEventListener('change', (e) => handleFileSelection(e), false);
 
+	// Get references to the radio buttons
+    const walkAnimationRadio = document.getElementById('walkAnimation');
+    const runAnimationRadio = document.getElementById('runAnimation');
+
+    // Set the "lego_idle" radio button as checked on page load
+    const idleAnimationRadio = document.getElementById('idleAnimation');
+    idleAnimationRadio.checked = true;
+    animationState.lego_idle = true;
+    animationState.lego_walk = false;
+    animationState.lego_run = false;
+    updateAnimationState();
+	
+    // Add event listeners to the radio buttons
+    walkAnimationRadio.addEventListener('change', function() {
+        if (walkAnimationRadio.checked) {
+            animationState.lego_walk = true;
+            animationState.lego_run = false;
+			animationState.lego_idle = false;
+            updateAnimationState();
+        }
+    });
+
+    runAnimationRadio.addEventListener('change', function() {
+        if (runAnimationRadio.checked) {
+            animationState.lego_walk = false;
+            animationState.lego_run = true;
+			animationState.lego_idle = false;
+            updateAnimationState();
+        }
+    });
+
+	idleAnimationRadio.addEventListener('change', function() {
+        if (idleAnimationRadio.checked) {
+            animationState.lego_walk = false;
+            animationState.lego_run = false;
+			animationState.lego_idle = true;
+            updateAnimationState();
+        }
+    });
+
+	const inputColor = document.getElementById('inputColor');
+	inputColor.addEventListener('change', e=>applyColor(e), false);
+	inputColor.addEventListener('input', e=>applyColor(e), false);
+
+
+
 });
 
 function init() {
@@ -42,7 +107,7 @@ function init() {
 
 	controls = new THREE.OrbitControls(camera, renderer.domElement);
 	controls.minDistance = camDis / 4;
-	controls.maxDistance = camDis ;
+	controls.maxDistance = camDis *2;
 
 	const ambient = new THREE.AmbientLight(0xFFFFFF, 1); scene.add(ambient);
 	const mainLight = new THREE.DirectionalLight( 0xFFFFFF, 0.85); mainLight.position.set( -1, 1, 1 ); scene.add( mainLight );
@@ -51,12 +116,47 @@ function init() {
 
 	window.addEventListener('resize', onWindowResize,false);
 	container.addEventListener('pointerup',  onMouseClick,  false);
+
+	const dropArea = document.getElementById('dropArea');
+    dropArea.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        dropArea.classList.add('dragging');
+    });
+
+    dropArea.addEventListener('dragleave', (event) => {
+        event.preventDefault();
+        dropArea.classList.remove('dragging');
+    });
+
+    dropArea.addEventListener('drop', handleDrop);
+
+    // Add a click event listener to trigger the click event on the file input
+    dropArea.addEventListener('click', () => {
+        const fileInput = document.getElementById('fileInput');
+        fileInput.click();
+    });
 }
 
-function loadModel(colorsExtracted) {
+function loadModel(colorsExtracted, object) {
 	const loader = new THREE.GLTFLoader();
-	loader.load( '../models/FullBodyApose.glb', function ( gltf ) {
-		const object = gltf.scene;
+
+	loader.load( '../models/FullBody_walk_003.gltf', function ( gltf ) {
+	//loader.load( '../models/FullBody_walk_002.glb', function ( gltf ) {
+		object = gltf.scene;
+		
+		//animation
+		mixer = new THREE.AnimationMixer (object);
+		const clips = gltf.animations;
+		const clip0 = THREE.AnimationClip.findByName(clips, 'Lego_Idle');
+		const clip1 = THREE.AnimationClip.findByName(clips, 'lego_walk');
+		const clip2 = THREE.AnimationClip.findByName(clips, 'lego_run');
+		const action0 = mixer.clipAction (clip0);
+		const action1 = mixer.clipAction (clip1);
+		const action2 = mixer.clipAction (clip2);
+		legoIdleAction = action0;
+		legoWalkAction = action1;
+        legoRunAction = action2;
+		
 		const vPos = new THREE.Box3().setFromObject(object), {min, max} = vPos;
 		const vSize = {
 			x:max.x - min.x,
@@ -73,6 +173,7 @@ function loadModel(colorsExtracted) {
 		});
 		const scl = (camDis/1.5)/vSize.y;
 		object.scale.set(scl, scl, scl);
+
 		object.traverse( child => {
 			if (child instanceof THREE.Mesh) {
 				const {map, color} = child.material, hexCol = color.getHex();
@@ -106,10 +207,52 @@ function loadModel(colorsExtracted) {
 			}
 		});
 		totalGroup.add( object );
-		totalGroup.position.y=-1.4;
+		totalGroup.position.y=-2;
+
 	}, undefined, undefined );
 }
 
+function animate() {
+    renderer.render(scene, camera);
+    TWEEN.update(); // Update the Tween.js animations
+    requestAnimationFrame(animate);
+    if (mixer) mixer.update(clock.getDelta());
+
+    // Check for inactivity and activate orbit effect
+    const currentTime = Date.now();
+    const timeDifference = currentTime - lastInteractionTime;
+
+    if (timeDifference >= 15000) {
+        // Rotate the model around its Y axis
+        const rotationSpeed = 0.0025; // Adjust the rotation speed as needed
+        totalGroup.rotation.y += rotationSpeed;
+    }
+
+    // Update animation state
+    updateAnimationState();
+}
+
+function updateAnimationState() {
+    if (legoWalkAction && legoRunAction) {
+        if (animationState.lego_walk) {
+            legoWalkAction.play();
+            legoRunAction.stop();
+			legoIdleAction.stop();
+        } else if (animationState.lego_run) {
+            legoWalkAction.stop();
+            legoRunAction.play();
+			legoIdleAction.stop();
+		} else if (animationState.lego_idle) {
+            legoWalkAction.stop();
+            legoRunAction.stop();
+			legoIdleAction.play();
+        } else {
+            legoWalkAction.stop();
+            legoRunAction.stop();
+			legoIdleAction.play();
+        }
+    }
+}
 
 function onMouseClick(e) {
 	var posX, posY;
@@ -134,6 +277,7 @@ function onMouseClick(e) {
 	} else {
 		colorWrapper.classList.remove('active');
 	}
+	lastInteractionTime = Date.now();
 }
 
 function applyColor(e) {
@@ -146,6 +290,7 @@ function onWindowResize() {
 	camera.aspect =  tWidth/ tHeight;
 	camera.updateProjectionMatrix();
 	renderer.setSize(tWidth, tHeight);
+
 }
 
 function setTotalSize() {
@@ -155,7 +300,7 @@ function setTotalSize() {
 
 function generateVariations() { // baseColor, numVariations, variationFactor
 	const rgbArr = [
-		{r:1, g:0, b:0},{r:0, g:1, b:0},{r:0, g:0, b:1},{r:1, g:1, b:0},{r:1, g:0, b:1},{r:0, g:1, b:1},
+		{r:1, g:0, b:0},{r:0, g:1, b:0},{r:0, g:0, b:1},{r:1, g:1, b:0},{r:1, g:0, b:1},{r:0, g:1, b:1}, {r:204, g:153, b:0}, {r:200, g:200, b:200},        
 	]
 	const baseRGB = getRandom(rgbArr);
 
@@ -184,11 +329,7 @@ function getRGBColor(rgb) {
 	return new THREE.Color("rgb("+rNum+", "+gNum+", "+bNum+")");
 }
 
-function animate() {
-	renderer.render(scene, camera);
-	requestAnimationFrame(animate);
-}
-
+// Drag and Drop
 function handleDrop(event) {
 	event.preventDefault();
 	const file = event.dataTransfer.files[0];
@@ -202,16 +343,11 @@ function handleDrop(event) {
 		  const wRatio = img.width / originalWidth;
 		  const hRatio = img.height / originalHeight;
   
-		  const locations = [
-			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio],
-			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], // Arm Right
-		  
-			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio],
-			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], // Arm Left
-		  
+		  const locations = [	
+
 			[320 * wRatio, 320 * hRatio], [430 * wRatio, 320 * hRatio], [580 * wRatio, 320 * hRatio], [690 * wRatio, 320 * hRatio],
 			[320 * wRatio, 320 * hRatio], [430 * wRatio, 320 * hRatio], [580 * wRatio, 320 * hRatio], [690 * wRatio, 320 * hRatio], // Row 1
-		  
+
 			[320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], // Eyes Back
 			[320 * wRatio, 430 * hRatio], [430 * wRatio, 430 * hRatio], [580 * wRatio, 430 * hRatio], [690 * wRatio, 430 * hRatio], // Eyes Front
 		  
@@ -220,14 +356,21 @@ function handleDrop(event) {
 		  
 			[320 * wRatio, 690 * hRatio], [430 * wRatio, 690 * hRatio], [580 * wRatio, 690 * hRatio], [690 * wRatio, 690 * hRatio],
 			[320 * wRatio, 690 * hRatio], [430 * wRatio, 690 * hRatio], [580 * wRatio, 690 * hRatio], [690 * wRatio, 690 * hRatio], // Row 4
-		  
+			//-------------------------------------------------------------------------------------------------------------------------------------
+
+			/*hand*/[320 * wRatio, 430 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], // Arm Right backSide
+	
+			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], /*hand*/[320 * wRatio, 430 * hRatio], //Arm Left backSide
+
+			/*hand*/[320 * wRatio, 430 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], // Arm Right frontside
+			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], /*hand*/[320 * wRatio, 430 * hRatio], // Arm Left frontside
+
 			[430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], [430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], // Body
 			[430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], [430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio],
 		  
 			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [760 * wRatio, 225 * hRatio], [760 * wRatio, 225 * hRatio], // Feet + legs
 		  ];
-  
-		  analyzeImageColors(e.target.result, locations);
+		  analyzeImageColors(e.target.result, locations.reverse());
 		};
 		img.src = e.target.result;
 	  };
@@ -235,30 +378,24 @@ function handleDrop(event) {
 	}
 }
 
-
-// Function to handle the file selection
+// Select file from computer
 function handleFileSelection(event) {
-	const file = event.target.files[0];
-	if (file.type.startsWith('image/')) {
-	  const reader = new FileReader();
-	  reader.onload = (e) => {
-		const img = new Image();
-		img.onload = () => {
+    const file = event.target.files[0];
+    if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const img = new Image();
+		img.onload = function () {
 		  const originalWidth = 1000;
 		  const originalHeight = 1000;
 		  const wRatio = img.width / originalWidth;
 		  const hRatio = img.height / originalHeight;
   
-		  const locations = [
-			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio],
-			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], // Arm Right
-		  
-			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio],
-			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], // Arm Left
-		  
+		  const locations = [	
+
 			[320 * wRatio, 320 * hRatio], [430 * wRatio, 320 * hRatio], [580 * wRatio, 320 * hRatio], [690 * wRatio, 320 * hRatio],
 			[320 * wRatio, 320 * hRatio], [430 * wRatio, 320 * hRatio], [580 * wRatio, 320 * hRatio], [690 * wRatio, 320 * hRatio], // Row 1
-		  
+
 			[320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], [320 * wRatio, 430 * hRatio], // Eyes Back
 			[320 * wRatio, 430 * hRatio], [430 * wRatio, 430 * hRatio], [580 * wRatio, 430 * hRatio], [690 * wRatio, 430 * hRatio], // Eyes Front
 		  
@@ -267,20 +404,27 @@ function handleFileSelection(event) {
 		  
 			[320 * wRatio, 690 * hRatio], [430 * wRatio, 690 * hRatio], [580 * wRatio, 690 * hRatio], [690 * wRatio, 690 * hRatio],
 			[320 * wRatio, 690 * hRatio], [430 * wRatio, 690 * hRatio], [580 * wRatio, 690 * hRatio], [690 * wRatio, 690 * hRatio], // Row 4
-		  
+			//-------------------------------------------------------------------------------------------------------------------------------------
+
+			/*hand*/[320 * wRatio, 430 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], // Arm Right backSide
+	
+			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], /*hand*/[320 * wRatio, 430 * hRatio], //Arm Left backSide
+
+			/*hand*/[320 * wRatio, 430 * hRatio], [320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], // Arm Right frontside
+			[690 * wRatio, 940 * hRatio], [690 * wRatio, 940 * hRatio], /*hand*/[320 * wRatio, 430 * hRatio], // Arm Left frontside
+
 			[430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], [430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], // Body
 			[430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio], [430 * wRatio, 940 * hRatio], [580 * wRatio, 940 * hRatio],
 		  
 			[320 * wRatio, 940 * hRatio], [320 * wRatio, 940 * hRatio], [760 * wRatio, 225 * hRatio], [760 * wRatio, 225 * hRatio], // Feet + legs
 		  ];
-  
-		  analyzeImageColors(e.target.result, locations);
+		  analyzeImageColors(e.target.result, locations.reverse());
 		};
 		img.src = e.target.result;
 	  };
 	  reader.readAsDataURL(file);
 	}
-  }
+}
 
 function analyzeImageColors(imageDataUrl, locations) {
 	const img = new Image();
@@ -297,15 +441,14 @@ function analyzeImageColors(imageDataUrl, locations) {
 		const pixelData = ctx.getImageData(x, y, 1, 1).data;
 		const color = new THREE.Color("rgb(" + pixelData[0] + ", " + pixelData[1] + ", " + pixelData[2] + ")");
 		colorsExtracted.push(color);
-		console.log(`Color at (${x}, ${y}): R=${pixelData[0]}, G=${pixelData[1]}, B=${pixelData[2]}`);
+		//console.log(`Color at (${x}, ${y}): R=${pixelData[0]}, G=${pixelData[1]}, B=${pixelData[2]}`);
 	  }
 	  colorsExtracted.reverse();
-	  //console.log(colorsExtracted);
+	  console.log(colorsExtracted);
 	  applyColorsToMeshes(colorsExtracted);
 	}
 	img.src = imageDataUrl;
-  }
-
+}
 
   function applyColorsToMeshes(colorsExtracted) {
 	meshArr.forEach((mesh, index) => {
@@ -317,3 +460,35 @@ function analyzeImageColors(imageDataUrl, locations) {
 		}
 	});
 }
+
+function moveCameraForward() {
+    // Initial camera position
+    const initialPosition = { z: camDis * 2 };
+    
+    // Target camera position
+    const targetPosition = { z: camDis / 2 };
+    
+    // Create a tween
+    const tween = new TWEEN.Tween(initialPosition)
+        .to(targetPosition, 2000) // Duration is 3000ms (3 seconds)
+        .easing(TWEEN.Easing.Quadratic.InOut) // Easing function for smooth movement
+        .onUpdate(() => {
+            camera.position.z = initialPosition.z;
+        })
+        .start();
+}
+
+/*function applyImagesFromFolder(locations) {
+    const folderPath = 'images/Selecta/'; // Update the path to the selecta folder
+    const imageFiles = ['1.png', '2.png', '3.png', '4.png','6.png', '7.png', '8.png'];
+    let index = 0;
+    function applyNextImage() {
+        if (index < imageFiles.length) {
+            const imageUrl = folderPath + imageFiles[index];
+            analyzeImageColors(imageUrl, locations);
+            index++;
+            setTimeout(applyNextImage, 300); // Delay of 300ms between images
+        }
+    }
+    applyNextImage();
+}*/

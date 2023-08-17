@@ -57,7 +57,7 @@ canvas {
 .top-bar {
 	background-color: black;
 	color: white;
-	height: 100px;
+	height: 50px;
 	width: 100vw;
 	position: absolute;
 	top: 0;
@@ -66,6 +66,7 @@ canvas {
 	justify-content: space-between;
 	align-items: center;
 	padding: 10px;
+	z-index: 1;
 }
 
 .title-container {
@@ -134,12 +135,12 @@ canvas {
 }
 
 #dropArea {
-	width: 300px;
+	width: 30%;
 	height: 50px;
-	border: 1px dashed #ccc;
+	border: 1px dashed #999999;
 	text-align: center;
 	padding: 20px;
-	margin-bottom: 400px;
+	margin-bottom: 175px;
   }
 
   #dropArea:hover {
@@ -174,3 +175,20 @@ canvas {
 	left: 20px;
 	z-index: -1;
 }
+
+.top-bar-controls {
+    background-color: rgb(18, 18, 18);
+	font-family: 'Roboto', sans-serif;
+	font-size: small;
+    color: white;
+    height: 10px; /* Adjusted height */
+    width: 100vw;
+    position: absolute;
+    top: 0px; /* Adjusted top value */
+    left: 0;
+	display: flex; /* Enable Flexbox */
+    align-items: center; /* Center vertically */
+    padding: 10px;
+    z-index: 0;
+}
+
