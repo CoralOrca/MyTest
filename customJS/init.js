@@ -104,16 +104,12 @@ function init() {
         const fileInput = document.getElementById('fileInput');
         fileInput.click();
     });
-
-
-	
 }
 
 function loadModel(colorsExtracted, object) {
 	const loader = new THREE.GLTFLoader();
 
-	loader.load( '../models/FullBody_walk_008.gltf', function ( gltf ) {
-	//loader.load( '../models/FullBody_walk_002.glb', function ( gltf ) {
+	loader.load( '../models/FullBody_walk_009.gltf', function ( gltf ) {
 		object = gltf.scene;
 		//animation
 		mixer = new THREE.AnimationMixer (object);
@@ -131,7 +127,6 @@ function loadModel(colorsExtracted, object) {
 		LRightAction.loop = THREE.LoopOnce; // Set to loop only once
 		LRightAction.clampWhenFinished = true; // Clamp to the last frame after finishing
 	
-
         RunAction = mixer.clipAction (THREE.AnimationClip.findByName(clips, 'lego_run'));
 		RunSTAction = mixer.clipAction (THREE.AnimationClip.findByName(clips, 'lego_run_start'));
 		RunSPAction = mixer.clipAction (THREE.AnimationClip.findByName(clips, 'lego_run_stop'));
