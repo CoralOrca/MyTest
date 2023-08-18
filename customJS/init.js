@@ -109,7 +109,7 @@ function init() {
 function loadModel(colorsExtracted, object) {
 	const loader = new THREE.GLTFLoader();
 
-	loader.load( '../models/FullBody_walk_009.gltf', function ( gltf ) {
+	loader.load( '../models/FullBody_walk_010.gltf', function ( gltf ) {
 		object = gltf.scene;
 		//animation
 		mixer = new THREE.AnimationMixer (object);
