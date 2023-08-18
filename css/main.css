@@ -184,7 +184,7 @@ canvas {
     height: 10px; /* Adjusted height */
     width: 100vw;
     position: absolute;
-    top: 0px; /* Adjusted top value */
+    top: 70px; /* Adjusted top value */
     left: 0;
 	display: flex; /* Enable Flexbox */
     align-items: center; /* Center vertically */

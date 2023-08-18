@@ -5,93 +5,73 @@ const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2(), meshArr = 
 let randColors = generateVariations();
 let object;
 
-let mixer;
+let mixer, IdleAction, LLeftAction, LRightAction, WalkAction, WalkSTAction, WalkSPAction, RunAction, RunSTAction, RunSPAction;
 const clock = new THREE.Clock();
+const animationState = {
+	st_idle: true,
+    st_walk: false,
+    st_run: false,
+	st_LLeft: false, // Changed to false
+    st_LRight: false, // Changed to false
+    played_LLeft: false, // Track if LLeft has been played
+    played_LRight: false, // Track if LRight has been played
+};
 
 let lastRotationTime = Date.now();
 let lastInteractionTime = Date.now();
 
-let legoWalkAction;
-let legoRunAction;
-let legoIdleAction;
-
-// Define and initialize animationState object
-const animationState = {
-	lego_idle: true,
-    lego_walk: false,
-    lego_run: false
-};
-
 $(document).ready(function () {
-	setTotalSize();
-	init();
-	loadModel();
-	animate();
-	// Camera zooms in 
-	moveCameraForward();
+    setTotalSize();
+    init();
+    loadModel();
+    animate();
+    moveCameraForward();
 
 	const dropArea = document.getElementById('dropArea');
-	dropArea.addEventListener('dragover', (event) => {
-	  event.preventDefault();
-	  dropArea.classList.add('dragging');
-	});
-  
-	dropArea.addEventListener('dragleave', (event) => {
-	  event.preventDefault();
-	  dropArea.classList.remove('dragging');
-	});
-  
+	dropArea.addEventListener('dragover', handleDragEvent('dragging', true));
+	dropArea.addEventListener('dragleave', handleDragEvent('dragging', false));
 	dropArea.addEventListener('drop', handleDrop);
 
-	const fileInput = document.getElementById('fileInput');
-	fileInput.addEventListener('change', (e) => handleFileSelection(e), false);
+    const fileInput = document.getElementById('fileInput');
+    fileInput.addEventListener('change', (e) => handleFileSelection(e), false);
 
-	// Get references to the radio buttons
-    const walkAnimationRadio = document.getElementById('walkAnimation');
-    const runAnimationRadio = document.getElementById('runAnimation');
-
-    // Set the "lego_idle" radio button as checked on page load
+    // Set the "idle" radio button as checked on page load
     const idleAnimationRadio = document.getElementById('idleAnimation');
     idleAnimationRadio.checked = true;
-    animationState.lego_idle = true;
-    animationState.lego_walk = false;
-    animationState.lego_run = false;
-    updateAnimationState();
-	
+    animationState.st_idle = true;
+    animationState.st_walk = false;
+    animationState.st_run = false;
+    animationState.st_LLeft = false;
+    animationState.st_LRight = false;
+
+    // Array of animation state names and corresponding radio button IDs
+    const animationStates = [
+        { name: 'st_idle', radioId: 'idleAnimation' },
+        { name: 'st_walk', radioId: 'walkAnimation' },
+        { name: 'st_run', radioId: 'runAnimation' },
+        { name: 'st_LLeft', radioId: 'lookLeftAnimation' },
+        { name: 'st_LRight', radioId: 'lookRightAnimation' },
+    ];
+
+    // Get references to the radio buttons and set initial checked state
+    animationStates.forEach(state => {
+        state.radio = document.getElementById(state.radioId);
+        state.radio.checked = state.name === 'st_idle';
+    });
+
     // Add event listeners to the radio buttons
-    walkAnimationRadio.addEventListener('change', function() {
-        if (walkAnimationRadio.checked) {
-            animationState.lego_walk = true;
-            animationState.lego_run = false;
-			animationState.lego_idle = false;
+    animationStates.forEach(state => {
+        state.radio.addEventListener('change', function() {
+            animationStates.forEach(s => {
+                animationState[s.name] = (s.name === state.name);
+            });
             updateAnimationState();
-        }
+        });
     });
 
-    runAnimationRadio.addEventListener('change', function() {
-        if (runAnimationRadio.checked) {
-            animationState.lego_walk = false;
-            animationState.lego_run = true;
-			animationState.lego_idle = false;
-            updateAnimationState();
-        }
-    });
-
-	idleAnimationRadio.addEventListener('change', function() {
-        if (idleAnimationRadio.checked) {
-            animationState.lego_walk = false;
-            animationState.lego_run = false;
-			animationState.lego_idle = true;
-            updateAnimationState();
-        }
-    });
-
-	const inputColor = document.getElementById('inputColor');
-	inputColor.addEventListener('change', e=>applyColor(e), false);
-	inputColor.addEventListener('input', e=>applyColor(e), false);
-
-
-
+    const inputColor = document.getElementById('inputColor');
+    inputColor.addEventListener('change', e => applyColor(e), false);
+    inputColor.addEventListener('input', e => applyColor(e), false);
 });
 
 function init() {
@@ -101,15 +81,12 @@ function init() {
 	container.appendChild(renderer.domElement);
 	renderer.setClearColor(0x181818, 1);
 	scene = new THREE.Scene();
-
-	camera = new THREE.PerspectiveCamera(60, tWidth / tHeight, 0.01, camDis*10);
+	camera = new THREE.PerspectiveCamera(60, tWidth / tHeight, 0.01, camDis*10); 							// Camera
 	camera.position.set(0, 0, camDis/2);
-
-	controls = new THREE.OrbitControls(camera, renderer.domElement);
+	controls = new THREE.OrbitControls(camera, renderer.domElement); 										// Controls
 	controls.minDistance = camDis / 4;
 	controls.maxDistance = camDis *2;
-
-	const ambient = new THREE.AmbientLight(0xFFFFFF, 1); scene.add(ambient);
+	const ambient = new THREE.AmbientLight(0xFFFFFF, 1); scene.add(ambient); 								// Lights
 	const mainLight = new THREE.DirectionalLight( 0xFFFFFF, 0.85); mainLight.position.set( -1, 1, 1 ); scene.add( mainLight );
 
 	totalGroup = new THREE.Group(); scene.add(totalGroup);
@@ -118,44 +95,50 @@ function init() {
 	container.addEventListener('pointerup',  onMouseClick,  false);
 
 	const dropArea = document.getElementById('dropArea');
-    dropArea.addEventListener('dragover', (event) => {
-        event.preventDefault();
-        dropArea.classList.add('dragging');
-    });
-
-    dropArea.addEventListener('dragleave', (event) => {
-        event.preventDefault();
-        dropArea.classList.remove('dragging');
-    });
-
-    dropArea.addEventListener('drop', handleDrop);
+	dropArea.addEventListener('dragover', handleDragEvent('dragging', true));
+	dropArea.addEventListener('dragleave', handleDragEvent('dragging', false));
+	dropArea.addEventListener('drop', handleDrop);
 
     // Add a click event listener to trigger the click event on the file input
     dropArea.addEventListener('click', () => {
         const fileInput = document.getElementById('fileInput');
         fileInput.click();
     });
+
+
+	
 }
 
 function loadModel(colorsExtracted, object) {
 	const loader = new THREE.GLTFLoader();
 
-	loader.load( '../models/FullBody_walk_003.gltf', function ( gltf ) {
+	loader.load( '../models/FullBody_walk_008.gltf', function ( gltf ) {
 	//loader.load( '../models/FullBody_walk_002.glb', function ( gltf ) {
 		object = gltf.scene;
-		
 		//animation
 		mixer = new THREE.AnimationMixer (object);
 		const clips = gltf.animations;
-		const clip0 = THREE.AnimationClip.findByName(clips, 'Lego_Idle');
-		const clip1 = THREE.AnimationClip.findByName(clips, 'lego_walk');
-		const clip2 = THREE.AnimationClip.findByName(clips, 'lego_run');
-		const action0 = mixer.clipAction (clip0);
-		const action1 = mixer.clipAction (clip1);
-		const action2 = mixer.clipAction (clip2);
-		legoIdleAction = action0;
-		legoWalkAction = action1;
-        legoRunAction = action2;
+
+		IdleAction = mixer.clipAction (THREE.AnimationClip.findByName(clips, 'lego_idle'));
+
+		LLeftAction = mixer.clipAction(THREE.AnimationClip.findByName(clips, 'lego_look_left'));
+		LLeftAction.timeScale = 0.1;
+		LLeftAction.loop = THREE.LoopOnce; // Set to loop only once
+		LLeftAction.clampWhenFinished = true; // Clamp to the last frame after finishing
+	
+		LRightAction = mixer.clipAction(THREE.AnimationClip.findByName(clips, 'lego_look_right'));
+		LRightAction.timeScale = 0.1;
+		LRightAction.loop = THREE.LoopOnce; // Set to loop only once
+		LRightAction.clampWhenFinished = true; // Clamp to the last frame after finishing
+	
+
+        RunAction = mixer.clipAction (THREE.AnimationClip.findByName(clips, 'lego_run'));
+		RunSTAction = mixer.clipAction (THREE.AnimationClip.findByName(clips, 'lego_run_start'));
+		RunSPAction = mixer.clipAction (THREE.AnimationClip.findByName(clips, 'lego_run_stop'));
+		
+		WalkAction = mixer.clipAction (THREE.AnimationClip.findByName(clips, 'lego_walk'));
+		WalkSTAction = mixer.clipAction (THREE.AnimationClip.findByName(clips, 'lego_walk_start'));
+		WalkSPAction = mixer.clipAction (THREE.AnimationClip.findByName(clips, 'lego_walk_stop'));	
 		
 		const vPos = new THREE.Box3().setFromObject(object), {min, max} = vPos;
 		const vSize = {
@@ -222,37 +205,67 @@ function animate() {
     const currentTime = Date.now();
     const timeDifference = currentTime - lastInteractionTime;
 
-    if (timeDifference >= 15000) {
+    if (timeDifference >= 30000) { // after 30s
         // Rotate the model around its Y axis
         const rotationSpeed = 0.0025; // Adjust the rotation speed as needed
         totalGroup.rotation.y += rotationSpeed;
     }
-
     // Update animation state
     updateAnimationState();
 }
 
 function updateAnimationState() {
-    if (legoWalkAction && legoRunAction) {
-        if (animationState.lego_walk) {
-            legoWalkAction.play();
-            legoRunAction.stop();
-			legoIdleAction.stop();
-        } else if (animationState.lego_run) {
-            legoWalkAction.stop();
-            legoRunAction.play();
-			legoIdleAction.stop();
-		} else if (animationState.lego_idle) {
-            legoWalkAction.stop();
-            legoRunAction.stop();
-			legoIdleAction.play();
+    if (WalkAction && RunAction) {
+        if (animationState.st_walk) {
+            WalkAction.play();
+            RunAction.stop();
+            IdleAction.stop();
+            LLeftAction.stop();
+            LRightAction.stop();
+        } else if (animationState.st_run) {
+            WalkAction.stop();
+            IdleAction.stop();
+			RunAction.play();
+            LLeftAction.stop();
+            LRightAction.stop();
+        } else if (animationState.st_idle) {
+            WalkAction.stop();
+            RunAction.stop();
+            IdleAction.play();
+            LLeftAction.stop();
+            LRightAction.stop();
+        } else if (animationState.st_LRight) {
+            if (!animationState.played_LRight) { // Play only once
+                LLeftAction.stop(); // Stop LLeft if playing
+                LRightAction.play();
+                animationState.played_LRight = true; // Mark as played
+            }
+
+        } else if (animationState.st_LLeft) {
+            if (!animationState.played_LLeft) { // Play only once
+                LRightAction.stop(); // Stop LRight if playing
+                LLeftAction.play();
+                animationState.played_LLeft = true; // Mark as played
+            }
+
         } else {
-            legoWalkAction.stop();
-            legoRunAction.stop();
-			legoIdleAction.play();
+            WalkAction.stop();
+            RunAction.stop();
+            IdleAction.play();
+            LLeftAction.stop();
+            LRightAction.stop();
         }
     }
+
+	    // Reset played flags when changing animation state
+		if (!animationState.st_LLeft) {
+			animationState.played_LLeft = false;
+		}
+		if (!animationState.st_LRight) {
+			animationState.played_LRight = false;
+		}
 }
+
 
 function onMouseClick(e) {
 	var posX, posY;
@@ -378,6 +391,17 @@ function handleDrop(event) {
 	}
 }
 
+function handleDragEvent(className, addClass) {
+    return function(event) {
+        event.preventDefault();
+        if (addClass) {
+            dropArea.classList.add(className);
+        } else {
+            dropArea.classList.remove(className);
+        }
+    };
+}
+
 // Select file from computer
 function handleFileSelection(event) {
     const file = event.target.files[0];
@@ -477,18 +501,3 @@ function moveCameraForward() {
         })
         .start();
 }
-
-/*function applyImagesFromFolder(locations) {
-    const folderPath = 'images/Selecta/'; // Update the path to the selecta folder
-    const imageFiles = ['1.png', '2.png', '3.png', '4.png','6.png', '7.png', '8.png'];
-    let index = 0;
-    function applyNextImage() {
-        if (index < imageFiles.length) {
-            const imageUrl = folderPath + imageFiles[index];
-            analyzeImageColors(imageUrl, locations);
-            index++;
-            setTimeout(applyNextImage, 300); // Delay of 300ms between images
-        }
-    }
-    applyNextImage();
-}*/
